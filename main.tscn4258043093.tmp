@@ -1,11 +1,8 @@
-[gd_scene load_steps=9 format=3 uid="uid://bv7t68vtm8oq6"]
+[gd_scene load_steps=6 format=3 uid="uid://bv7t68vtm8oq6"]
 
 [ext_resource type="Texture2D" uid="uid://dcrai860lts7i" path="res://asset/Final/Tiles.png" id="1_0xm2m"]
-[ext_resource type="Texture2D" uid="uid://ckg3yy68pexct" path="res://asset/Final/Background_0.png" id="2_7mycd"]
 [ext_resource type="PackedScene" uid="uid://bhsu2a8wwa2h2" path="res://asset/Scene/player.tscn" id="2_h2yge"]
 [ext_resource type="Texture2D" uid="uid://dy13t7is2wx2x" path="res://asset/texture/sprite_chest-removebg-preview.png" id="3_h2yge"]
-[ext_resource type="Script" uid="uid://ddyamsex853e2" path="res://asset/Script/item.gd" id="4_1bvp3"]
-[ext_resource type="Script" uid="uid://2goqp3ccbnbq" path="res://PopupUI.gd" id="5_lquwl"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_1bvp3"]
 texture = ExtResource("1_0xm2m")
@@ -624,7 +621,6 @@ zoom = Vector2(2, 2)
 position_smoothing_enabled = true
 
 [node name="Area2D" type="Area2D" parent="."]
-script = ExtResource("4_1bvp3")
 
 [node name="SpriteChestRemovebgPreview" type="Sprite2D" parent="Area2D"]
 position = Vector2(245.00002, -29.000002)
@@ -636,33 +632,15 @@ texture = ExtResource("3_h2yge")
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
 [node name="ColorRect" type="ColorRect" parent="CanvasLayer"]
-visible = false
 offset_right = 40.0
 offset_bottom = 40.0
 
-[node name="PopupPanel" type="PopupPanel" parent="CanvasLayer"]
-oversampling_override = 1.0
-script = ExtResource("5_lquwl")
+[node name="Popup" type="Popup" parent="CanvasLayer"]
 
-[node name="Label" type="Label" parent="CanvasLayer/PopupPanel"]
-offset_left = 4.0
-offset_top = 4.0
-offset_right = 96.0
-offset_bottom = 96.0
+[node name="Label" type="Label" parent="CanvasLayer/Popup"]
+offset_right = 40.0
+offset_bottom = 23.0
 
-[node name="Button" type="Button" parent="CanvasLayer/PopupPanel"]
-offset_left = 4.0
-offset_top = 4.0
-offset_right = 96.0
-offset_bottom = 96.0
-
-[node name="ParallaxBackground" type="ParallaxBackground" parent="."]
-
-[node name="ParallaxLayer" type="ParallaxLayer" parent="ParallaxBackground"]
-motion_scale = Vector2(0.2, 0.2)
-motion_mirroring = Vector2(748, 0)
-
-[node name="Sprite2D" type="Sprite2D" parent="ParallaxBackground/ParallaxLayer"]
-position = Vector2(-117, -191)
-texture = ExtResource("2_7mycd")
-centered = false
+[node name="Button" type="Button" parent="CanvasLayer/Popup"]
+offset_right = 8.0
+offset_bottom = 8.0
