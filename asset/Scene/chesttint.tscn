@@ -1,23 +1,5 @@
-[gd_scene load_steps=5 format=3 uid="uid://cyos4y5bcgx6a"]
+[gd_scene format=3 uid="uid://cyos4y5bcgx6a"]
 
-[ext_resource type="Script" uid="uid://hgfimcu0cslx" path="res://asset/Script/hint_test.gd" id="1_kbhm6"]
-[ext_resource type="Texture2D" uid="uid://dy13t7is2wx2x" path="res://asset/texture/sprite_chest-removebg-preview.png" id="1_l2fgu"]
-[ext_resource type="Script" uid="uid://bj2qafadonswf" path="res://asset/interaction/interaction_area.gd" id="3_8n10d"]
-
-[sub_resource type="CircleShape2D" id="CircleShape2D_p0imr"]
-radius = 561.38
-
-[node name="Node2D" type="Node2D"]
-script = ExtResource("1_kbhm6")
-
-[node name="Sprite2D" type="Sprite2D" parent="."]
-texture = ExtResource("1_l2fgu")
-
-[node name="InteractionArea" type="Area2D" parent="."]
-script = ExtResource("3_8n10d")
-action_name = "talk"
-metadata/_custom_type_script = "uid://bj2qafadonswf"
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="InteractionArea"]
-position = Vector2(0, -172)
-shape = SubResource("CircleShape2D_p0imr")
+[node name="interaction area" type="Area2D"]
+collision_layer = 0
+collision_mask = 2
