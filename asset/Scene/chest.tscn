@@ -1,0 +1,25 @@
+[gd_scene load_steps=6 format=3 uid="uid://ciqhh8popayt1"]
+
+[ext_resource type="Script" uid="uid://clvhl48v2x5h" path="res://asset/Scene/chest.gd" id="1_uu1dd"]
+[ext_resource type="PackedScene" uid="uid://btq8br8au2fpk" path="res://asset/Scene/Textbox.tscn" id="2_nka6c"]
+[ext_resource type="Texture2D" uid="uid://dy13t7is2wx2x" path="res://asset/texture/sprite_chest-removebg-preview.png" id="2_pj3mo"]
+[ext_resource type="Script" uid="uid://bj2qafadonswf" path="res://asset/interaction/interaction_area.gd" id="3_nka6c"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_06aqh"]
+
+[node name="Chest" type="Node2D"]
+script = ExtResource("1_uu1dd")
+textbox_scene = ExtResource("2_nka6c")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.25, 0.25)
+texture = ExtResource("2_pj3mo")
+
+[node name="InteractionArea" type="Area2D" parent="."]
+collision_mask = 2
+script = ExtResource("3_nka6c")
+metadata/_custom_type_script = "uid://bj2qafadonswf"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="InteractionArea"]
+scale = Vector2(7.1600003, 4.12)
+shape = SubResource("RectangleShape2D_06aqh")
