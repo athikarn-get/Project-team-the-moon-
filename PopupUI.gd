@@ -11,13 +11,14 @@ func _ready():
 	if color_rect:
 		color_rect.visible = false
 
-func show_popup(title: String, desc: String):
+func show_popup(popup_title: String, desc: String):
 	label.bbcode_enabled = true
-	label.text = "[b]" + title + "[/b]\n" + desc
+	label.text = "[b]" + popup_title + "[/b]\n" + desc
 	popup_centered()
 	show()
 	if color_rect:
 		color_rect.visible = true
+
 
 func _on_close_pressed():
 	hide()
