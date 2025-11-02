@@ -1,9 +1,11 @@
-[gd_scene load_steps=8 format=3 uid="uid://bv7t68vtm8oq6"]
+[gd_scene load_steps=14 format=3 uid="uid://bv7t68vtm8oq6"]
 
 [ext_resource type="Texture2D" uid="uid://dcrai860lts7i" path="res://asset/Final/Tiles.png" id="1_0xm2m"]
+[ext_resource type="Script" uid="uid://8y515v84miys" path="res://main.gd" id="1_lquwl"]
 [ext_resource type="Texture2D" uid="uid://ckg3yy68pexct" path="res://asset/Final/Background_0.png" id="2_7mycd"]
 [ext_resource type="PackedScene" uid="uid://bhsu2a8wwa2h2" path="res://asset/Scene/player.tscn" id="2_h2yge"]
 [ext_resource type="PackedScene" uid="uid://ciqhh8popayt1" path="res://asset/Scene/chest.tscn" id="5_7mycd"]
+[ext_resource type="FontFile" uid="uid://8y00s8h2hs2a" path="res://asset/font/2005_iannnnnCPU.ttf" id="5_272bh"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_lquwl"]
 texture = ExtResource("1_0xm2m")
@@ -634,7 +636,16 @@ func _on_close_pressed():
 		color_rect.visible = false
 "
 
-[node name="Node2D" type="Node2D"]
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_7mycd"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_272bh"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_5vw27"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_kek77"]
+
+[node name="Node2D" type="Node2D" groups=["Main"]]
+script = ExtResource("1_lquwl")
 
 [node name="TileMap" type="TileMap" parent="."]
 position = Vector2(1027, 82)
@@ -677,6 +688,25 @@ offset_top = 4.0
 offset_right = 96.0
 offset_bottom = 96.0
 
+[node name="UI" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+grow_horizontal = 0
+
+[node name="HintButton" type="Button" parent="CanvasLayer/UI"]
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+focus_mode = 0
+theme_override_fonts/font = ExtResource("5_272bh")
+theme_override_styles/normal = SubResource("StyleBoxEmpty_7mycd")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_272bh")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_5vw27")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_kek77")
+text = "Hint"
+
 [node name="ParallaxBackground" type="ParallaxBackground" parent="."]
 
 [node name="ParallaxLayer" type="ParallaxLayer" parent="ParallaxBackground"]
@@ -684,6 +714,6 @@ motion_scale = Vector2(0.2, 0.2)
 motion_mirroring = Vector2(748, 0)
 
 [node name="Sprite2D" type="Sprite2D" parent="ParallaxBackground/ParallaxLayer"]
-position = Vector2(-117, -191)
+position = Vector2(-105, -170)
 texture = ExtResource("2_7mycd")
 centered = false

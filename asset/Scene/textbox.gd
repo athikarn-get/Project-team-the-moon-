@@ -9,11 +9,11 @@ const CHAR_READ_RATE := 0.03
 @onready var label: Label = $TextboxContainer/MarginContainer/HBoxContainer/Control/Label
 
 enum State { READY, READING, FINISHED }
-var current_state: State = State.READY          # <-- typed
+var current_state: State = State.READY
 
-var reveal_tween: Tween = null                  # <-- typed (SceneTreeTween is a Tween in 4.x)
-var text_queue: Array[String] = []              # <-- typed
-var anchor_world_pos: Vector2 = Vector2.ZERO    # <-- typed
+var reveal_tween: Tween = null
+var text_queue: Array[String] = []
+var anchor_world_pos: Vector2 = Vector2.ZERO
 
 func _ready() -> void:
 	hide_textbox()
@@ -25,15 +25,15 @@ func _process(_delta: float) -> void:
 			if not text_queue.is_empty():
 				display_text()
 		State.READING:
-			if Input.is_action_just_pressed("ui_accept"):
+			if Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("interact"):
 				if reveal_tween:
 					reveal_tween.kill()
 					reveal_tween = null
 				label.visible_characters = label.text.length()
-				end_symbol.text = "v"
+				end_symbol.text = "_"
 				change_state(State.FINISHED)
 		State.FINISHED:
-			if Input.is_action_just_pressed("ui_accept"):
+			if Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("interact"):
 				if not text_queue.is_empty():
 					display_text()
 				else:
@@ -41,12 +41,19 @@ func _process(_delta: float) -> void:
 					hide_textbox()
 					emit_signal("finished")
 
+# ====== เพิ่มส่วนนี้ ======
+# เรียกจาก chest เพื่อกำหนดตำแหน่งของ textbox
+func set_anchor_world_pos(p: Vector2) -> void:
+	# ขยับให้ต่ำกว่า player นิดหน่อย (ค่าบวก = ลงล่าง)
+	anchor_world_pos = p + Vector2(0, 64)
+# ========================
+
 # ---- Public API ----
 func queue_text(t: String) -> void:
 	text_queue.push_back(t)
 
 func display_text() -> void:
-	var t: String = text_queue.pop_front() as String      # <-- typed + cast
+	var t: String = text_queue.pop_front() as String
 	if reveal_tween:
 		reveal_tween.kill()
 		reveal_tween = null
@@ -60,15 +67,15 @@ func display_text() -> void:
 	change_state(State.READING)
 	show_textbox()
 
-	var duration: float = float(t.length()) * CHAR_READ_RATE   # <-- typed
-	reveal_tween = create_tween()                               # <-- reveal_tween already typed
+	var duration: float = float(t.length()) * CHAR_READ_RATE
+	reveal_tween = create_tween()
 	reveal_tween.tween_method(
 		func(v): label.visible_characters = int(v),
 		0, t.length(), duration
 	).set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_IN_OUT)
 
 	reveal_tween.finished.connect(func():
-		end_symbol.text = "v"
+		end_symbol.text = "_"
 		change_state(State.FINISHED)
 		reveal_tween = null
 	)
@@ -83,20 +90,20 @@ func show_textbox() -> void:
 	textbox_container.show()
 
 func _set_popup_screen_pos(world_pos: Vector2) -> void:
-	var xform: Transform2D = get_viewport().get_canvas_transform()   # <-- typed
-	var screen_pos: Vector2 = xform * world_pos                      # <-- typed
+	var xform: Transform2D = get_viewport().get_canvas_transform()
+	var screen_pos: Vector2 = xform * world_pos
 
-	var box: Control = textbox_container                              # <-- typed
-	var box_size: Vector2 = box.size                                   # <-- typed
+	var box: Control = textbox_container
+	var box_size: Vector2 = box.size
 	if box_size == Vector2.ZERO:
 		box_size = Vector2(360, 120)
 
-	var margin: float = 40.0                                           # <-- typed
-	box.global_position = screen_pos - Vector2(box_size.x * 0.5, box_size.y + margin)
+	var margin: float = 40.0
+	box.global_position = screen_pos - Vector2(box_size.x * 0.5, -margin)  # อยู่ใต้ Player
 
-	var vp: Vector2 = get_viewport().get_visible_rect().size          # <-- typed
+	var vp: Vector2 = get_viewport().get_visible_rect().size
 	box.global_position.x = clampf(box.global_position.x, 8.0, vp.x - box_size.x - 8.0)
 	box.global_position.y = clampf(box.global_position.y, 8.0, vp.y - box_size.y - 8.0)
 
-func change_state(s: State) -> void:                                  # <-- typed
+func change_state(s: State) -> void:
 	current_state = s
