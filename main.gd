@@ -3,8 +3,9 @@ extends Node2D
 # ===== ปรับได้เล็กน้อย =====
 var chest_opened: bool = false                 # เรียก on_chest_opened() จาก chest.gd
 var GLOW_SCALE: float = 1.25                   # ขนาดวงแสงเทียบกับปุ่ม
-var GLOW_OFFSET: Vector2 = Vector2(-7, -8)      # ชดเชยตำแหน่ง (emoji มักเอียงบน-ล่างไม่เท่ากัน)
+var GLOW_OFFSET: Vector2 = Vector2(-6.9, -18)     # ชดเชยตำแหน่ง (emoji มักเอียงบน-ล่างไม่เท่ากัน)
 # ============================
+var new_hint_available: bool = false           # ✅ มี hint ใหม่แล้วยังไม่ได้อ่าน?
 
 @onready var hint_button: Button = $CanvasLayer/UI/HintButton
 var hint_window: AcceptDialog
@@ -12,6 +13,7 @@ var hint_window: AcceptDialog
 # โหนดเอฟเฟกต์
 var glow_rect: ColorRect
 var glow_tween: Tween
+var pulse_tween: Tween                         # ✅ ทวีนที่ทำให้กระพริบเอง
 
 func _ready() -> void:
 	# --- วางพาเรนต์ของปุ่มไว้ขวาบน ---
@@ -60,9 +62,13 @@ func _ready() -> void:
 	hint_button.minimum_size_changed.connect(_update_glow_size)
 	_update_glow_size()
 
-	# Hover = สว่างขึ้น + ขยายเล็กน้อย
-	hint_button.mouse_entered.connect(func(): _animate_glow(0.95, 1.15))
-	hint_button.mouse_exited.connect(func(): _animate_glow(0.0, 1.0))
+	# Hover = สว่างขึ้น + ขยายเล็กน้อย (ปิดถ้ากำลังกระพริบเอง)
+	hint_button.mouse_entered.connect(func():
+		if not new_hint_available: _animate_glow(0.95, 1.15)
+	)
+	hint_button.mouse_exited.connect(func():
+		if not new_hint_available: _animate_glow(0.0, 1.0)
+	)
 
 # ---------- Glow (รัศมี + ขอบ) ----------
 func _create_glow_centered() -> void:
@@ -142,8 +148,35 @@ func _animate_glow(to_alpha: float, to_scale: float) -> void:
 		glow_rect, "scale", Vector2(to_scale, to_scale), 0.15
 	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
+# ---------- กระพริบอัตโนมัติเมื่อมี Hint ใหม่ ----------
+func _start_hint_pulse() -> void:
+	# ให้แสง “เต้นไป-มา” เหมือน hover แต่ลูปเอง
+	_stop_hint_pulse()
+	pulse_tween = create_tween().set_loops()   # ลูปไม่สิ้นสุดจนกว่าจะหยุด
+	pulse_tween.tween_property(glow_rect.material, "shader_parameter/glow_alpha", 0.95, 0.35)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	pulse_tween.parallel().tween_property(glow_rect, "scale", Vector2(1.15, 1.15), 0.35)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	pulse_tween.tween_property(glow_rect.material, "shader_parameter/glow_alpha", 0.0, 0.35)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	pulse_tween.parallel().tween_property(glow_rect, "scale", Vector2(1.0, 1.0), 0.35)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+func _stop_hint_pulse() -> void:
+	if pulse_tween and pulse_tween.is_running():
+		pulse_tween.kill()
+	# รีเซ็ตกลับเหมือนยังไม่ hover
+	if is_instance_valid(glow_rect) and is_instance_valid(glow_rect.material):
+		glow_rect.material.set_shader_parameter("glow_alpha", 0.0)
+	glow_rect.scale = Vector2.ONE
+
 # ---------- Hint Window ----------
 func _on_hint_button_pressed() -> void:
+	# ถ้ามี hint ใหม่ → ถือว่าอ่านแล้ว และหยุดกระพริบทันที
+	if new_hint_available:
+		new_hint_available = false
+		_stop_hint_pulse()
+
 	if hint_window.visible:
 		hint_window.hide()
 	else:
@@ -151,10 +184,11 @@ func _on_hint_button_pressed() -> void:
 		hint_window.popup_centered()
 
 func get_hint_text() -> String:
-	return "print()
-	why PSCP SO HARD BRO ?" if chest_opened else "I have no idea right now."
+	return "print()\nwhy PSCP SO HARD BRO ?" if chest_opened else "I have no idea right now."
 
 # เรียกจาก chest.gd เมื่อเปิดหีบ
 func on_chest_opened() -> void:
 	chest_opened = true
-#------------------------------------------------------------------------------------------------------------------------
+	new_hint_available = true
+	_start_hint_pulse()   # ✅ เริ่มกระพริบทันทีที่ได้ hint ใหม่
+#---------------------------------------------------------------------------------------------------------------

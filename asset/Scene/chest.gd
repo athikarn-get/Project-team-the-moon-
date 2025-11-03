@@ -1,15 +1,24 @@
 extends Node2D
 #----------------------------------------------------------------------------------------------------------------------------------
 @onready var area: Area2D = $InteractionArea
-@onready var interact_label: Label = $Label                  # ป้ายข้อความบนหีบ
-@export var textbox_scene: PackedScene                       # ลาก textbox.tscn มาใส่ใน Inspector
+@onready var interact_label: Label = $Label
+@export var textbox_scene: PackedScene
+
+@onready var sprite_closed: Sprite2D = $Sprite2D     # หีบปิด
+@onready var sprite_opened: Sprite2D = $Sprite2D2    # หีบเปิด
 
 var in_range := false
 var player: Node = null
 var textbox_instance: Node = null
-var chest_opened: bool = false   # ✅ เปิดแล้วหรือยัง (ใช้กันกดซ้ำ)
+var chest_opened: bool = false
 
 func _ready() -> void:
+	# ซ่อน Sprite2D2 (หีบเปิด) ตอนเริ่ม
+	if sprite_opened:
+		sprite_opened.visible = false
+	if sprite_closed:
+		sprite_closed.visible = true
+
 	if interact_label:
 		interact_label.visible = false
 
@@ -38,7 +47,6 @@ func _on_exit(body: Node) -> void:
 			interact_label.visible = false
 
 func _unhandled_input(event: InputEvent) -> void:
-	# ✅ แค่กันกดซ้ำหลังเปิด (ไม่ปิดสัญญาณเข้า/ออก)
 	if chest_opened:
 		return
 	if in_range and player and event.is_action_pressed("interact"):
@@ -52,15 +60,12 @@ func _run_textbox() -> void:
 	textbox_instance = textbox_scene.instantiate()
 	get_tree().root.add_child(textbox_instance)
 
-	# ให้ textbox โผล่ใต้ player ถ้ารองรับ
 	if textbox_instance.has_method("set_anchor_world_pos") and player:
 		textbox_instance.set_anchor_world_pos(player.global_position)
 
-	# ล็อก player ระหว่างคุย
 	if player and player.has_method("set_movement_locked"):
 		player.set_movement_locked(true)
 
-	# ซ่อนป้ายระหว่างคุย
 	if interact_label:
 		interact_label.visible = false
 
@@ -71,18 +76,9 @@ func _run_textbox() -> void:
 			if is_instance_valid(textbox_instance):
 				textbox_instance.queue_free()
 			textbox_instance = null
-
-			# ✅ หลังคุยเสร็จ: ตั้งสถานะเปิดแล้ว + แสดงข้อความใหม่เมื่อยังยืนในระยะ
-			chest_opened = true
-			if interact_label and in_range:
-				interact_label.text = "You already open..."
-				interact_label.visible = true
-
-			# แจ้ง Main ให้เปลี่ยน Hint เป็น "print() ?"
-			_notify_main_chest_opened()
+			_on_chest_opened_final()
 		)
 
-	# ข้อความตัวอย่าง (แก้/ลบได้)
 	if textbox_instance.has_method("queue_text"):
 		textbox_instance.queue_text("You found a chest!")
 		textbox_instance.queue_text("It creaks open slowly...")
@@ -90,6 +86,23 @@ func _run_textbox() -> void:
 
 	if textbox_instance.has_method("display_text"):
 		textbox_instance.display_text()
+
+func _on_chest_opened_final() -> void:
+	chest_opened = true
+
+	# ✅ ซ่อนหีบปิด / โชว์หีบเปิด
+	if sprite_closed:
+		sprite_closed.visible = false
+	if sprite_opened:
+		sprite_opened.visible = true
+
+	# ✅ อัปเดตข้อความ
+	if interact_label and in_range:
+		interact_label.text = "You already open..."
+		interact_label.visible = true
+
+	# ✅ แจ้ง Main ให้เปลี่ยน Hint เป็น "print() ?"
+	_notify_main_chest_opened()
 
 func _is_player(body: Node) -> bool:
 	return body != null and (body.is_in_group("player") or body.name == "Player")

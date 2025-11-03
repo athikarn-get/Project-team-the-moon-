@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://bv7t68vtm8oq6"]
+[gd_scene load_steps=18 format=3 uid="uid://bv7t68vtm8oq6"]
 
 [ext_resource type="Texture2D" uid="uid://dcrai860lts7i" path="res://asset/Final/Tiles.png" id="1_0xm2m"]
 [ext_resource type="Script" uid="uid://8y515v84miys" path="res://main.gd" id="1_lquwl"]
@@ -6,6 +6,9 @@
 [ext_resource type="PackedScene" uid="uid://bhsu2a8wwa2h2" path="res://asset/Scene/player.tscn" id="2_h2yge"]
 [ext_resource type="PackedScene" uid="uid://ciqhh8popayt1" path="res://asset/Scene/chest.tscn" id="5_7mycd"]
 [ext_resource type="FontFile" uid="uid://8y00s8h2hs2a" path="res://asset/font/2005_iannnnnCPU.ttf" id="5_272bh"]
+[ext_resource type="Script" uid="uid://dhddtjc8eaclq" path="res://label.gd" id="6_272bh"]
+[ext_resource type="Texture2D" uid="uid://c8j5q3ahxkvi7" path="res://asset/texture/pixel-art-nature-scene-with-wooden-fence-pine-trees-grass-blue-sky_1292377-16274 (1).png" id="8_kek77"]
+[ext_resource type="PackedScene" uid="uid://cew7ukohc841b" path="res://asset/Scene/Boss.tscn" id="9_4c57u"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_lquwl"]
 texture = ExtResource("1_0xm2m")
@@ -607,6 +610,9 @@ texture = ExtResource("1_0xm2m")
 physics_layer_0/collision_layer = 1
 sources/1 = SubResource("TileSetAtlasSource_lquwl")
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kek77"]
+size = Vector2(76, 154)
+
 [sub_resource type="GDScript" id="GDScript_1bvp3"]
 script/source = "extends PopupPanel
 
@@ -656,14 +662,39 @@ layer_0/tile_data = PackedInt32Array(-131072, 1, 9, -65536, 1, 11, -131071, 6553
 [node name="Chest" parent="." instance=ExtResource("5_7mycd")]
 position = Vector2(268, -48)
 
+[node name="Boss" parent="." instance=ExtResource("9_4c57u")]
+position = Vector2(469.99997, -60.999996)
+rotation = 3.1415927
+scale = Vector2(0.44, -0.44)
+blocker_path = NodePath("../Wall")
+
+[node name="Wall" type="StaticBody2D" parent="."]
+position = Vector2(592, -48)
+
+[node name="Sprite2D" type="Sprite2D" parent="Wall"]
+scale = Vector2(0.085, 0.085)
+texture = ExtResource("8_kek77")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Wall"]
+position = Vector2(0, -42)
+shape = SubResource("RectangleShape2D_kek77")
+
 [node name="Player" parent="." instance=ExtResource("2_h2yge")]
-position = Vector2(40, -65)
+position = Vector2(43, -28)
 collision_layer = 2
 
 [node name="Camera2D" type="Camera2D" parent="Player"]
 position = Vector2(0, -1)
 zoom = Vector2(2, 2)
 position_smoothing_enabled = true
+
+[node name="dialog" type="Label" parent="Player/Camera2D"]
+offset_left = -115.0
+offset_top = -75.0
+offset_right = -18.0
+offset_bottom = -48.0
+theme_override_fonts/font = ExtResource("5_272bh")
+script = ExtResource("6_272bh")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
