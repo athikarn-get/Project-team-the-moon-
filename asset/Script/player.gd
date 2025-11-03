@@ -5,6 +5,7 @@ const JUMP_VELOCITY := -400.0
 
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite2D
 
+var is_interacting := false
 var can_move: bool = true
 var speech_label: Label
 var random_talk_timer: Timer
@@ -25,9 +26,11 @@ var random_lines := [
 
 func set_movement_locked(locked: bool) -> void:
 	can_move = not locked
+	is_interacting = locked      # ✅ บอกสถานะว่ากำลัง interact อยู่
 	velocity = Vector2.ZERO
 	if locked and animated_sprite:
 		animated_sprite.play("idle")
+
 
 func _ready() -> void:
 	add_to_group("player")
@@ -96,18 +99,28 @@ func _create_speech_label() -> void:
 	speech_label = Label.new()
 	speech_label.visible = false
 	speech_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-	speech_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	speech_label.size = Vector2(240, 0)
-	speech_label.position = Vector2(-120, -100)
+	speech_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER   # ✅ จัดชิดซ้าย
+	speech_label.size = Vector2(200, 0)  # ✅ แคบลงให้พอดีกับหัว
+	speech_label.position = Vector2(-100, -60)  # ✅ เลื่อนให้อยู่ใกล้หัวฝั่งซ้าย (ลองปรับค่า X,Y ได้)
 
+	# โหลดฟอนต์
 	var font: Font = load("res://asset/font/2005_iannnnnCPU.ttf")
 	speech_label.add_theme_font_override("font", font)
-	speech_label.add_theme_font_size_override("font_size", 24)
 
+	# ✅ ทำตัวอักษรเล็กลง
+	speech_label.add_theme_font_size_override("font_size", 18)
+
+	# ✅ เพิ่มขอบให้อ่านง่าย
 	speech_label.add_theme_constant_override("outline_size", 2)
 	speech_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
 
+	# ✅ เพิ่มเงา (optional)
+	speech_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
+	speech_label.add_theme_constant_override("shadow_offset_x", 2)
+	speech_label.add_theme_constant_override("shadow_offset_y", 2)
+
 	add_child(speech_label)
+
 
 
 func speak_start(lines: Array[String], per_line: float = 1.8) -> void:
@@ -153,11 +166,14 @@ func _restart_random_talk_timer() -> void:
 
 
 func _on_random_talk_timeout() -> void:
-	if not is_intro_finished:
+	if not is_intro_finished or is_interacting:
+		_restart_random_talk_timer()
 		return
+
 	var text = random_lines[randi() % random_lines.size()]
 	await speak_line(text)
 	_restart_random_talk_timer()
+
 
 
 func speak_line(text: String, speed: float = 0.05) -> void:

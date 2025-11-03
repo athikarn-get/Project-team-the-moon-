@@ -346,5 +346,5 @@ autoplay = "idle"
 frame_progress = 0.5064639
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(1, 9)
+position = Vector2(1, 18)
 shape = SubResource("CircleShape2D_f5eb5")

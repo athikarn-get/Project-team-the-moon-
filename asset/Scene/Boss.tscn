@@ -1,8 +1,9 @@
-[gd_scene load_steps=35 format=3 uid="uid://cew7ukohc841b"]
+[gd_scene load_steps=36 format=3 uid="uid://cew7ukohc841b"]
 
 [ext_resource type="Texture2D" uid="uid://8wema6unmw8q" path="res://asset/animation/sprite/Bad mole idle.png" id="1_faosh"]
 [ext_resource type="Script" uid="uid://8dxup1v5gasv" path="res://asset/Scene/BossQuiz.gd" id="1_hk7oq"]
 [ext_resource type="Script" uid="uid://c6t2t6ravef01" path="res://asset/Scene/InteractArea.gd" id="3_cub3m"]
+[ext_resource type="FontFile" uid="uid://8y00s8h2hs2a" path="res://asset/font/2005_iannnnnCPU.ttf" id="4_p6fwx"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_hk7oq"]
 atlas = ExtResource("1_faosh")
@@ -223,6 +224,7 @@ script = ExtResource("1_hk7oq")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = SubResource("SpriteFrames_84crs")
+frame_progress = 0.4044089
 
 [node name="InteractArea" type="Area2D" parent="."]
 collision_mask = 15
@@ -232,3 +234,14 @@ script = ExtResource("3_cub3m")
 position = Vector2(-4.500004, -39.200005)
 scale = Vector2(12.28, 12.96)
 shape = SubResource("RectangleShape2D_i6qvi")
+
+[node name="bossdialog" type="Label" parent="."]
+offset_left = 146.0
+offset_top = -157.0
+offset_right = 410.29004
+offset_bottom = -117.0
+scale = Vector2(-1, 1)
+theme_override_fonts/font = ExtResource("4_p6fwx")
+theme_override_font_sizes/font_size = 38
+text = "aasdasddasdasd"
+horizontal_alignment = 1

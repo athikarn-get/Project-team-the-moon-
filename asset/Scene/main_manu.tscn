@@ -1,0 +1,72 @@
+[gd_scene load_steps=7 format=3 uid="uid://ccd0njpx5t0yh"]
+
+[ext_resource type="FontFile" uid="uid://8y00s8h2hs2a" path="res://asset/font/2005_iannnnnCPU.ttf" id="1_dvf6r"]
+[ext_resource type="Texture2D" uid="uid://but26bk7axiox" path="res://asset/texture/Gemini_Generated_Image_dkimtjdkimtjdkim.png" id="1_qjbe7"]
+[ext_resource type="Script" uid="uid://ehoo2ugitiru" path="res://asset/Scene/main_manu.gd" id="1_y2bah"]
+[ext_resource type="Texture2D" uid="uid://bde2jbdtrreet" path="res://asset/texture/logo2 alt.png" id="4_ho8sj"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_5p14m"]
+texture = ExtResource("1_qjbe7")
+texture_margin_left = 1719.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qjbe7"]
+bg_color = Color(0.090580784, 0.1293962, 0.24650982, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+shadow_size = 5
+
+[node name="MainManu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_y2bah")
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_5p14m")
+
+[node name="Button" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 136.0
+offset_top = -45.0
+offset_right = 413.0
+offset_bottom = 42.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_fonts/font = ExtResource("1_dvf6r")
+theme_override_font_sizes/font_size = 66
+theme_override_styles/normal = SubResource("StyleBoxFlat_qjbe7")
+text = "START GAME"
+
+[node name="Logo2Alt" type="Sprite2D" parent="."]
+position = Vector2(327, 319.50003)
+scale = Vector2(0.6266016, 0.6279297)
+texture = ExtResource("4_ho8sj")
+
+[node name="Label" type="Label" parent="."]
+layout_mode = 0
+offset_left = 1064.0
+offset_top = 622.0
+offset_right = 1149.0
+offset_bottom = 647.0
+theme_override_fonts/font = ExtResource("1_dvf6r")
+theme_override_font_sizes/font_size = 22
+text = "PSCP Project"
+horizontal_alignment = 1
+
+[connection signal="pressed" from="Button" to="." method="_on_start_pressed"]

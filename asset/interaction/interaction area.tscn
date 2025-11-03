@@ -1,6 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://bhw608v18oorm"]
-
-[ext_resource type="Script" uid="uid://bj2qafadonswf" path="res://asset/interaction/interaction_area.gd" id="1_sot7l"]
+[gd_scene load_steps=2 format=3 uid="uid://h6ialt13hv70"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_sot7l"]
 size = Vector2(368, 273)
@@ -8,7 +6,6 @@ size = Vector2(368, 273)
 [node name="Area2D" type="Area2D"]
 collision_layer = 0
 collision_mask = 2
-script = ExtResource("1_sot7l")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(174, 126.5)
