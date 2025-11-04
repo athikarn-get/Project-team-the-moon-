@@ -49,7 +49,6 @@ func _ensure_quiz() -> void:
 			_quiz.answered.connect(_on_quiz_answered)
 
 func _physics_process(_dt: float) -> void:
-	# ✅ เช็คด้วย is_instance_valid ก่อนแตะ _quiz.visible
 	var quiz_visible := is_instance_valid(_quiz) and _quiz.visible
 	if _in_range and (not quiz_visible) and Input.is_action_just_pressed("interact"):
 		_do_open_quiz()
@@ -90,7 +89,7 @@ func _do_open_quiz() -> void:
 	if _done or not _in_range or _player == null:
 		return
 	_ensure_quiz()
-	# ถ้าเปิดอยู่แล้ว ไม่ต้องทำซ้ำ
+	# เปิดอยู่แล้ว ไม่ต้องทำซ้ำ
 	if _quiz.visible:
 		return
 	_boss_clear()
@@ -99,17 +98,16 @@ func _do_open_quiz() -> void:
 	_quiz.ask(quiz_question, quiz_answer)
 
 func _on_quiz_answered(correct: bool, _given: String) -> void:
-	# ปลดล็อกการเดิน
+	# ปลดการเดิน
 	if _player and _player.has_method("set_movement_locked"):
 		_player.set_movement_locked(false)
 
-	# ✅ ไม่ free ทันที — ซ่อนไว้แทน
 	if is_instance_valid(_quiz):
 		_quiz.hide()
 
 	if correct:
 		_done = true
-		# เปิดทาง: ลบ Wall3 ถ้ามี หรือใช้ blocker_path ถ้าตั้งไว้
+		# เปิดทาง: ลบ Wall3
 		var wall3 := get_tree().current_scene.get_node_or_null("Wall3")
 		if wall3:
 			wall3.queue_free()

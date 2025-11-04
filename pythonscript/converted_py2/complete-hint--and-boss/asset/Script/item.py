@@ -1,47 +1,32 @@
-# --- Godot Python bridge imports (py4godot primary) ---
 from typing import Optional, Any
-
 try:
-    # py4godot (Godot 4.x Pluginscript)
-    from py4godot import gdclass, signal
-    from py4godot.core import *  # import all core Godot classes (Node2D, AcceptDialog, Area2D, Label, Button, etc.)
+	from py4godot import gdclass, signal
+	from py4godot.core import *
 except Exception:
-    # Fallback: godot-python (experimental for Godot 4, signatures may differ)
-    from godot import exposed as gdclass, signal
-    from godot import *  # type: ignore
+	from godot import exposed as gdclass, signal
+	from godot import *  # type: ignore
+
 
 @gdclass
 class Item(Area2D):
-    def __init__(self):
-        super().__init__()
-        self.object_name = "chest"  # @export
-        self.description = "hint"  # @export
-        self.player_in_range =  False
+	def __init__(self):
+		super().__init__()
+		self.object_name: str = "chest"
+		self.description: str = "hint"
+		self.player_in_range: bool = False
 
-    def _ready(self) -> None:
-        pass
+	def _ready(self) -> None:
+		self.body_entered.connect(self._on_body_entered)
+		self.body_exited.connect(self._on_body_exited)
 
+	def _on_body_entered(self, body: Node) -> None:
+		if hasattr(body, "is_in_group") and body.is_in_group("player"):
+			self.player_in_range = True
 
+	def _on_body_exited(self, body: Node) -> None:
+		if hasattr(body, "is_in_group") and body.is_in_group("player"):
+			self.player_in_range = False
 
-    def _ready(self):
-    	connect("body_entered", Callable(self, "_on_body_entered"))
-    	connect("body_exited", Callable(self, "_on_body_exited"))
-
-
-    def _on_body_entered(self, body):
-    	if body.name == "Player":
-    		player_in_range = True
-
-
-    def _on_body_exited(self, body):
-    	if body.name == "Player":
-    		player_in_range = False
-
-    #func _process(delta):
-    	#if player_in_range and Input.is_action_just_pressed("interact"):
-    		#get_tree().call_group("ui", "show_popup", object_name, description)
-
-
-    def _process(self, _delta):
-    	if player_in_range and Input.is_action_just_pressed("interact"):
-    		get_tree().call_group("ui", "show_popup", object_name, description)
+	def _process(self, _delta: float) -> None:
+		if self.player_in_range and Input.is_action_just_pressed("interact"):
+			get_tree().call_group("ui", "show_popup", self.object_name, self.description)

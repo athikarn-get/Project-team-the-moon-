@@ -1,149 +1,116 @@
-# --- Godot Python bridge imports (py4godot primary) ---
 from typing import Optional, Any
-
 try:
-    # py4godot (Godot 4.x Pluginscript)
     from py4godot import gdclass, signal
-    from py4godot.core import *  # import all core Godot classes (Node2D, AcceptDialog, Area2D, Label, Button, etc.)
+    from py4godot.core import *
 except Exception:
-    # Fallback: godot-python (experimental for Godot 4, signatures may differ)
     from godot import exposed as gdclass, signal
     from godot import *  # type: ignore
+
 
 @gdclass
 class Chest(Node2D):
     def __init__(self):
         super().__init__()
-        self.area: Any = None  # onready; set in _ready
-        self.interact_label: Any = None  # onready; set in _ready
-        self.textbox_scene = None  # @export
-        self.sprite_closed: Any = None  # onready; set in _ready
-        self.sprite_opened: Any = None  # onready; set in _ready
-        self.in_range = None
-        self.player =  None
-        self.textbox_instance =  None
-        self.chest_opened =  False
-        self.main = None
+        self.area: Optional[Area2D] = None
+        self.interact_label: Optional[Label] = None
+        self.textbox_scene: Optional[PackedScene] = None
+        self.sprite_closed: Optional[Node2D] = None
+        self.sprite_opened: Optional[Node2D] = None
+        self.in_range: bool = False
+        self.player: Optional[Node] = None
+        self.textbox_instance: Optional[Node] = None
+        self.chest_opened: bool = False
+        self.main: Optional[Node] = None
 
     def _ready(self) -> None:
-        self.area = self.get_node(\"\1\")
-        self.interact_label = self.get_node(\"\1\")
-        self.sprite_closed = self.get_node(\"\1\")     # หีบปิด
-        self.sprite_opened = self.get_node(\"\1\")    # หีบเปิด
-    #----------------------------------------------------------------------------------------------------------------------------------
+        self.area = self.get_node_or_null("InteractionArea")
+        self.interact_label = self.get_node_or_null("Label")
+        self.sprite_closed = self.get_node_or_null("Sprite2D")
+        self.sprite_opened = self.get_node_or_null("Sprite2D2")
+        if self.sprite_opened:
+            self.sprite_opened.visible = False
+        if self.sprite_closed:
+            self.sprite_closed.visible = True
+        if self.interact_label:
+            self.interact_label.visible = False
+        if self.area:
+            self.area.body_entered.connect(self._on_enter)
+            self.area.body_exited.connect(self._on_exit)
 
+    def _on_enter(self, body: Node) -> None:
+        if self._is_player(body):
+            self.in_range = True
+            self.player = body
+            if self.interact_label:
+                self.interact_label.text = "You already open..." if self.chest_opened else "Press [E]"
+                self.interact_label.visible = True
 
+    def _on_exit(self, body: Node) -> None:
+        if body == self.player:
+            self.in_range = False
+            self.player = None
+            if self.interact_label:
+                self.interact_label.visible = False
 
+    def _unhandled_input(self, event: InputEvent) -> None:
+        if self.chest_opened:
+            return
+        if self.in_range and self.player and event.is_action_pressed("interact"):
+            self._run_textbox()
 
-    def _ready(self):
-    	# ซ่อน Sprite2D2 (หีบเปิด) ตอนเริ่ม
-    	if sprite_opened:
-    		sprite_opened.visible = False
-    	if sprite_closed:
-    		sprite_closed.visible = True
+    def _run_textbox(self) -> None:
+        if not self.textbox_scene or self.textbox_instance:
+            return
+        self.textbox_instance = self.textbox_scene.instantiate()
+        get_tree().root.add_child(self.textbox_instance)
+        if self.textbox_instance and self.player and self.textbox_instance.has_method("set_anchor_world_pos"):
+            self.textbox_instance.set_anchor_world_pos(self.player.global_position)
+        if self.player and self.player.has_method("set_movement_locked"):
+            self.player.set_movement_locked(True)
+        if self.interact_label:
+            self.interact_label.visible = False
+        if self.textbox_instance and self.textbox_instance.has_signal("finished"):
+            self.textbox_instance.finished.connect(self._on_textbox_finished)
+        if self.textbox_instance and self.textbox_instance.has_method("queue_text"):
+            self.textbox_instance.queue_text("You found a chest!")
+            self.textbox_instance.queue_text("It creaks open slowly...")
+            self.textbox_instance.queue_text("You got a hint!")
+        if self.textbox_instance and self.textbox_instance.has_method("display_text"):
+            self.textbox_instance.display_text()
 
-    	if interact_label:
-    		interact_label.visible = False
+    def _on_textbox_finished(self) -> None:
+        if self.player and self.player.has_method("set_movement_locked"):
+            self.player.set_movement_locked(False)
+        if self.textbox_instance and is_instance_valid(self.textbox_instance):
+            self.textbox_instance.queue_free()
+        self.textbox_instance = None
+        self._on_chest_opened_final()
 
-    	if area == None:
-    		push_error("Chest.gd: ต้องมี Area2D ชื่อ 'InteractionArea' ใต้ Chest")
-    		return
+    def _on_chest_opened_final(self) -> None:
+        self.chest_opened = True
+        if self.sprite_closed:
+            self.sprite_closed.visible = False
+        if self.sprite_opened:
+            self.sprite_opened.visible = True
+        if self.interact_label and self.in_range:
+            self.interact_label.text = "You already open..."
+            self.interact_label.visible = True
+        self._notify_main_chest_opened()
 
-    	if not area.is_connected("body_entered", Callable(self, "_on_enter")):
-    		area.body_entered.connect(_on_enter)
-    	if not area.is_connected("body_exited", Callable(self, "_on_exit")):
-    		area.body_exited.connect(_on_exit)
+    def _is_player(self, body: Optional[Node]) -> bool:
+        if not body:
+            return False
+        if hasattr(body, "is_in_group") and body.is_in_group("player"):
+            return True
+        return getattr(body, "name", "") == "Player"
 
-
-    def _on_enter(self, body):
-    	if _is_player(body):
-    		in_range = True
-    		player = body
-    		if interact_label:
-    			interact_label.text = "You already open..." if chest_opened else "Press [E]"
-    			interact_label.visible = True
-
-
-    def _on_exit(self, body):
-    	if body == player:
-    		in_range = False
-    		player = None
-    		if interact_label:
-    			interact_label.visible = False
-
-
-    def _unhandled_input(self, event):
-    	if chest_opened:
-    		return
-    	if in_range and player and event.is_action_pressed("interact"):
-    		_run_textbox()
-
-
-    def _run_textbox(self):
-    	if not textbox_scene:
-    		push_error("Assign the textbox_scene in the Inspector.")
-    		return
-
-    	textbox_instance = textbox_scene.instantiate()
-    	get_tree().root.add_child(textbox_instance)
-
-    	if textbox_instance.has_method("set_anchor_world_pos") and player:
-    		textbox_instance.set_anchor_world_pos(player.global_position)
-
-    	if player and player.has_method("set_movement_locked"):
-    		player.set_movement_locked(True)
-
-    	if interact_label:
-    		interact_label.visible = False
-
-    	if textbox_instance.has_signal("finished"):
-    		textbox_instance.finished.connect(func ():
-    			if player and player.has_method("set_movement_locked"):
-    				player.set_movement_locked(False)
-    			if is_instance_valid(textbox_instance):
-    				textbox_instance.queue_free()
-    			textbox_instance = None
-    			_on_chest_opened_final()
-    		)
-
-    	if textbox_instance.has_method("queue_text"):
-    		textbox_instance.queue_text("You found a chest!")
-    		textbox_instance.queue_text("It creaks open slowly...")
-    		textbox_instance.queue_text("You got a hint!")
-
-    	if textbox_instance.has_method("display_text"):
-    		textbox_instance.display_text()
-
-
-    def _on_chest_opened_final(self):
-    	chest_opened = True
-
-    	# ✅ ซ่อนหีบปิด / โชว์หีบเปิด
-    	if sprite_closed:
-    		sprite_closed.visible = False
-    	if sprite_opened:
-    		sprite_opened.visible = True
-
-    	# ✅ อัปเดตข้อความ
-    	if interact_label and in_range:
-    		interact_label.text = "You already open..."
-    		interact_label.visible = True
-
-    	# ✅ แจ้ง Main เพื่อเพิ่ม Hint ข้อที่ 1
-    	_notify_main_chest_opened()
-
-
-    def _is_player(self, body):
-    	return body != None and (body.is_in_group("player") or body.name == "Player")
-
-
-    def _notify_main_chest_opened(self):
-    	if main and main.has_method("on_chest_opened_with_hint"):
-    		main.on_chest_opened_with_hint("""💡 คำใบ้ข้อที่ 1
-    1) ลูปจะเช็กทุกค่าทีละตัวใน nums
-    2) เงื่อนไข % 2 == 0 ผ่านเฉพาะบางค่า (เลขคู่เท่านั้น)
-    3) total จะเพิ่มขึ้นเรื่อย ๆ ตามค่าที่ผ่านเงื่อนไข
-    4) คำตอบออกมาเป็นเลขคู่บวก ที่ไม่ได้ใหญ่มาก
-    5) ถ้าอยากรู้คำตอบไว ลองพิมพ์ค่าที่เข้า if ดูก่อนสิ
-    """)
-    #----------------------------------------------------------------------------------------------------------------------------------
+    def _notify_main_chest_opened(self) -> None:
+        if self.main and self.main.has_method("on_chest_opened_with_hint"):
+            self.main.on_chest_opened_with_hint(
+                "💡 คำใบ้ข้อที่ 1\n"
+                "1) ลูปจะเช็กทุกค่าทีละตัวใน nums\n"
+                "2) เงื่อนไข % 2 == 0 ผ่านเฉพาะบางค่า (เลขคู่เท่านั้น)\n"
+                "3) total จะเพิ่มขึ้นเรื่อย ๆ ตามค่าที่ผ่านเงื่อนไข\n"
+                "4) คำตอบออกมาเป็นเลขคู่บวก ที่ไม่ได้ใหญ่มาก\n"
+                "5) ถ้าอยากรู้คำตอบไว ลองพิมพ์ค่าที่เข้า if ดูก่อนสิ\n"
+            )

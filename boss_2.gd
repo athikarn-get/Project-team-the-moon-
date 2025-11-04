@@ -102,17 +102,16 @@ func _on_quiz_answered(correct: bool, _given: String) -> void:
 	if correct:
 		_done = true
 
-		# ---- เปิดทาง: ลบ Wall2 หากมีในฉากหลัก ----
+		#เปิดทาง: ลบ Wall2
 		var wall2 := get_tree().current_scene.get_node_or_null("Wall2")
 		if wall2:
 			wall2.queue_free()
 		else:
-			# เผื่อกรณีโอ๊ตตั้ง blocker_path ไว้ใน Inspector
 			if blocker_path != NodePath():
 				var wall := get_node_or_null(blocker_path)
 				if wall:
 					wall.queue_free()
 
-		_boss_say("ดีมาก! ผ่านไปได้เลย...", 2.0)
+		_boss_say("ดีมาก! ผ่านไปได้เลย เก่งสุดๆน้องพี่...", 2.0)
 	else:
 		_boss_say("ยังไม่ใช่นะ ลองนับ 0 ถึง 9 ให้ถูกวิธีอีกครั้ง...", 2.0)

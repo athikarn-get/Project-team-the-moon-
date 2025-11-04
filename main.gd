@@ -1,6 +1,5 @@
 extends Node2D
-#---------------------------------------------------------------------------------------------------------------
-# ===== ปรับได้เล็กน้อย =====
+
 var chest_opened: bool = false
 var GLOW_SCALE: float = 1.25
 var GLOW_OFFSET: Vector2 = Vector2(-6.9, -18)
@@ -28,7 +27,7 @@ var page_label: Label
 var _page := 0
 
 # ---------- เก็บ Hint หลายอัน ----------
-var hints: Array[String] = []           # เก็บทีละหน้า (หนึ่งหน้าหนึ่งข้อความ)
+var hints: Array[String] = []           # เก็บทีละหน้า
 const HINT_SEPARATOR := "\n\n"
 
 # ---------- Hints ตามภาพ (ไม่ใส่คำตอบ) ----------
@@ -59,7 +58,7 @@ const H_HINT3 := """💡 คำใบ้ข้อที่ 3
 
 
 func _ready() -> void:
-	# --- ตำแหน่งปุ่มหลอดไฟ ---
+
 	var ui_parent := hint_button.get_parent()
 	if ui_parent and ui_parent is Control:
 		ui_parent.anchor_left = 1.0
@@ -254,7 +253,6 @@ func _close_hint() -> void:
 	await tw.finished
 	hint_root.visible = false
 
-# ---------- View/Page helpers ----------
 func _refresh_hint_view() -> void:
 	if hints.size() == 0:
 		hint_label.text = "i have no idea right now"
@@ -276,7 +274,6 @@ func _goto_page(p: int) -> void:
 	_page = (p % hints.size() + hints.size()) % hints.size()
 	_refresh_hint_view()
 
-# ---------- API เรียกจากหีบ ----------
 func on_chest_opened() -> void:
 	# หีบ 1 → Hint1 (ตามภาพ, ไม่รวมคำตอบ)
 	_add_hint_unique(H_HINT1)
@@ -284,31 +281,28 @@ func on_chest_opened() -> void:
 	_start_hint_pulse()
 
 func on_chest2_opened() -> void:
-	# หีบ 2 → Hint2
+	# หีบ 2  Hint2
 	_add_hint_unique(H_HINT2)
 	new_hint_available = true
 	_start_hint_pulse()
 
 func on_chest3_opened() -> void:
-	# หีบ 3 → Hint3
+	# หีบ 3  Hint3
 	_add_hint_unique(H_HINT3)
 	new_hint_available = true
 	_start_hint_pulse()
 
-# ทางเลือก: ยังรองรับส่งข้อความเอง
 func on_chest_opened_with_hint(hint_text: String) -> void:
 	_add_hint_unique(hint_text)
 	new_hint_available = true
 	_start_hint_pulse()
 
-# ---------- จัดการ Hint ----------
 func _add_hint_unique(text: String) -> void:
 	var t := text.strip_edges()
 	if t == "":
 		return
 	for h in hints:
 		if h == t:
-			# ซ้ำ ไม่เพิ่ม แต่เลื่อนไปหน้าที่มีอยู่
 			_page = hints.find(h)
 			_refresh_hint_view()
 			return
@@ -317,7 +311,7 @@ func _add_hint_unique(text: String) -> void:
 	_refresh_hint_view()
 	chest_opened = true
 
-# ---------- Glow ----------
+
 func _create_glow_centered() -> void:
 	glow_rect = ColorRect.new()
 	glow_rect.color = Color.TRANSPARENT
@@ -383,7 +377,7 @@ func _animate_glow(to_alpha: float, to_scale: float) -> void:
 		glow_rect, "scale", Vector2(to_scale, to_scale), 0.15
 	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
-# ---------- Pulse ----------
+# ---------- หยุด ----------
 func _start_hint_pulse() -> void:
 	_stop_hint_pulse()
 	pulse_tween = create_tween().set_loops()
@@ -402,4 +396,3 @@ func _stop_hint_pulse() -> void:
 	if is_instance_valid(glow_rect) and is_instance_valid(glow_rect.material):
 		glow_rect.material.set_shader_parameter("glow_alpha", 0.0)
 	glow_rect.scale = Vector2.ONE
-#---------------------------------------------------------------------------------------------------------------

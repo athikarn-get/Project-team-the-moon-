@@ -1,58 +1,56 @@
-# --- Godot Python bridge imports (py4godot primary) ---
 from typing import Optional, Any
-
 try:
-    # py4godot (Godot 4.x Pluginscript)
     from py4godot import gdclass, signal
-    from py4godot.core import *  # import all core Godot classes (Node2D, AcceptDialog, Area2D, Label, Button, etc.)
+    from py4godot.core import *
 except Exception:
-    # Fallback: godot-python (experimental for Godot 4, signatures may differ)
     from godot import exposed as gdclass, signal
     from godot import *  # type: ignore
 
+
 @gdclass
-class Interactionmanager(Node2D):
+class InteractionManager(Node2D):
     def __init__(self):
         super().__init__()
-        self.player: Any = None  # onready; set in _ready
-        self.label: Any = None  # onready; set in _ready
-        self.active_areas = []
-        self.can_interact =  True
-        self.a = active_areas[0]
-        self.d1 = player.global_position.distance_to(a1.global_position)
-        self.d2 = player.global_position.distance_to(a2.global_position)
-        self.target = active_areas[0]
+        self.player: Optional[Node] = None
+        self.label: Optional[Label] = None
+        self.active_areas: list[Any] = []
+        self.can_interact: bool = True
+        self.target: Optional[Any] = None
+        self.base_text: str = "[E] to "
 
     def _ready(self) -> None:
         self.player = get_tree().get_first_node_in_group("player")
-        self.label = self.get_node(\"\1\")
+        self.label = self.get_node_or_null("Label")
+        if self.label:
+            self.label.hide()
 
+    def _process(self, _delta: float) -> None:
+        if not (self.player and self.label and self.can_interact and self.active_areas):
+            if self.label:
+                self.label.hide()
+            return
+        self.active_areas.sort(
+            key=lambda a: a.global_position.distance_to(self.player.global_position)
+        )
+        self.target = self.active_areas[0]
+        action = getattr(self.target, "action_name", "interact")
+        self.label.text = self.base_text + action
+        pos = self.target.global_position
+        self.label.global_position = Vector2(pos.x, pos.y - 36.0)
+        if hasattr(self.label, "size"):
+            self.label.global_position.x -= self.label.size.x * 0.5
+        self.label.show()
 
-    const base_text = "[E] to "
-
-
-
-    def _process(self, _delta):
-    	if active_areas.size() > 0 and can_interact:
-    		active_areas.sort_custom(_sort_by_distance_to_player)
-    		label.text = base_text + a.action_name
-    		label.global_position = a.global_position
-    		label.global_position.y -= 36
-    		label.global_position.x -= label.size.x / 2
-    		label.show()
-    	else:
-    		label.hide()
-
-
-    def _sort_by_distance_to_player(self, a1, a2):
-    	return d1 < d2
-
-
-    def _input(self, event):
-    	if event.is_action_pressed("interact") and can_interact:
-    		if active_areas.size() > 0:
-    			can_interact = False
-    			label.hide()
-    			if target.interact.is_valid():
-    # TODO: convert awaiting: 				await target.interact.call()
-    			can_interact = True
+    def _input(self, event: InputEvent) -> None:
+        if not (self.can_interact and self.target and self.label):
+            return
+        if event.is_action_pressed("interact"):
+            self.can_interact = False
+            self.label.hide()
+            fn = getattr(self.target, "interact", None)
+            if callable(fn):
+                try:
+                    fn()
+                except Exception:
+                    pass
+            self.can_interact = True

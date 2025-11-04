@@ -1,28 +1,27 @@
 extends Node2D
 
-# === Quiz config (Boss1) =====================================================
+# Quiz config (Boss1)
 @export var quiz_question := "🧠 ข้อที่ 1 — พื้นฐาน Python (if-else + loop)\n\nnums = [1, 2, 3, 4, 5]\ntotal = 0\nfor n in nums:\n    if n % 2 == 0:\n        total += n\nprint(total)"
 @export var quiz_answer := "6"
 @export var blocker_path: NodePath
 @export var show_hint_text := true
 
-# === Internals ===============================================================
 var _player: Node = null
 var _in_range := false
 var _done := false
 var _quiz: QuizOverlayLite = null
 var _area: InteractArea
 
-@onready var boss_label: Label = $bossdialog   # <<< ใช้ Label ของบอสตัวนี้
+@onready var boss_label: Label = $bossdialog 
 
 func _ready() -> void:
-	# ----- ซ่อน Label ก่อน -----
+	#  ซ่อน Label 
 	if boss_label:
 		boss_label.visible = false
 	else:
 		push_error("[Boss1] Missing Label node named 'bossdialog'.")
 
-	# ----- ตั้งค่า InteractArea -----
+	# เซ็ทค่า InteractArea
 	_area = $InteractArea as InteractArea
 	if _area == null:
 		push_error("[Boss1] Missing InteractArea with InteractArea.gd attached.")
@@ -32,7 +31,6 @@ func _ready() -> void:
 	_area.body_entered.connect(_on_enter)
 	_area.body_exited.connect(_on_exit)
 
-	# เตรียม Overlay
 	_ensure_quiz()
 
 func _ensure_quiz() -> void:
@@ -54,7 +52,7 @@ func _physics_process(_dt: float) -> void:
 	if _in_range and (not quiz_visible) and Input.is_action_just_pressed("interact"):
 		_do_open_quiz()
 
-# === Label helpers ============================================================
+# Label helpers
 func _boss_say(text: String, auto_hide_sec: float = -1.0) -> void:
 	if boss_label == null:
 		return
@@ -69,7 +67,7 @@ func _boss_clear() -> void:
 		boss_label.text = ""
 		boss_label.visible = false
 
-# === Triggers ================================================================
+# Triggers 
 func _on_enter(body: Node) -> void:
 	if body.is_in_group("player"):
 		_player = body
@@ -86,7 +84,7 @@ func _on_exit(body: Node) -> void:
 		_player = null
 		_boss_clear()
 
-# === Quiz flow ===============================================================
+# Quiz flow
 func _do_open_quiz() -> void:
 	if _done or not _in_range or _player == null:
 		return
@@ -99,23 +97,23 @@ func _do_open_quiz() -> void:
 	_quiz.ask(quiz_question, quiz_answer)
 
 func _on_quiz_answered(correct: bool, _given: String) -> void:
-	# ปลดล็อกการเดิน
+	# ปลดการเดิน
 	if _player and _player.has_method("set_movement_locked"):
 		_player.set_movement_locked(false)
 
-	# ไม่ free ทันที → ซ่อนกัน error previously freed
+	# ไม่ free ทันที
 	if is_instance_valid(_quiz):
 		_quiz.hide()
 
 	if correct:
 		_done = true
-		# เปิดทาง: ใช้ blocker_path ถ้ามี
+		
 		if blocker_path != NodePath():
 			var wall := get_node_or_null(blocker_path)
 			if wall:
 				wall.queue_free()
 		else:
-			# หรือค้นหาจากชื่อ Wall ในฉากหลัก (เผื่อไม่ได้ตั้ง path)
+			
 			var wall_auto := get_tree().current_scene.get_node_or_null("Wall")
 			if wall_auto:
 				wall_auto.queue_free()

@@ -1,100 +1,88 @@
-# --- Godot Python bridge imports (py4godot primary) ---
 from typing import Optional, Any
-
 try:
-    # py4godot (Godot 4.x Pluginscript)
-    from py4godot import gdclass, signal
-    from py4godot.core import *  # import all core Godot classes (Node2D, AcceptDialog, Area2D, Label, Button, etc.)
+	from py4godot import gdclass, signal
+	from py4godot.core import *
 except Exception:
-    # Fallback: godot-python (experimental for Godot 4, signatures may differ)
-    from godot import exposed as gdclass, signal
-    from godot import *  # type: ignore
+	from godot import exposed as gdclass, signal
+	from godot import *  # type: ignore
+
 
 @gdclass
 class Dialogmanager(Node2D):
-    def __init__(self):
-        super().__init__()
-        self.area: Any = None  # onready; set in _ready
-        self.interact_label: Any = None  # onready; set in _ready
-        self.textbox_scene = None  # @export
-        self.in_range = None
-        self.player =  None
-        self.textbox_instance =  None
+	def __init__(self):
+		super().__init__()
+		self.area: Optional[Area2D] = None
+		self.interact_label: Optional[Label] = None
+		self.textbox_scene: Optional[PackedScene] = None
+		self.in_range: bool = False
+		self.player: Optional[Node] = None
+		self.textbox_instance: Optional[Node] = None
 
-    def _ready(self) -> None:
-        self.area = self.get_node(\"\1\")
-        self.interact_label = self.get_node(\"\1\")
+	def _ready(self) -> None:
+		self.area = self.get_node_or_null("InteractionArea")
+		self.interact_label = self.get_node_or_null("Label")
+		if not self.area:
+			push_error("Dialogmanager: InteractionArea not found.")
+			return
+		if self.interact_label:
+			self.interact_label.visible = False
+		self.area.body_entered.connect(self._on_enter)
+		self.area.body_exited.connect(self._on_exit)
 
+	def _on_enter(self, body: Node) -> None:
+		if self._is_player(body):
+			self.in_range = True
+			self.player = body
+			if self.interact_label:
+				self.interact_label.text = "Press [E]"
+				self.interact_label.visible = True
 
+	def _on_exit(self, body: Node) -> None:
+		if body == self.player:
+			self.in_range = False
+			self.player = None
+			if self.interact_label:
+				self.interact_label.visible = False
 
+	def _unhandled_input(self, event: InputEvent) -> None:
+		if self.in_range and self.player and event.is_action_pressed("interact"):
+			self._run_textbox()
 
-    def _ready(self):
-    	if not area:
-    		push_error("No Area2D found (parent of CollisionShape2D). Make sure CollisionShape2D is under an Area2D.")
-    		return
+	def _run_textbox(self) -> None:
+		if not self.textbox_scene:
+			push_error("Dialogmanager: Assign textbox_scene in Inspector.")
+			return
+		if self.textbox_instance and is_instance_valid(self.textbox_instance):
+			return
+		self.textbox_instance = self.textbox_scene.instantiate()
+		get_tree().root.add_child(self.textbox_instance)
+		if self.textbox_instance and self.textbox_instance.has_method("set_anchor_world_pos") and self.player:
+			self.textbox_instance.set_anchor_world_pos(self.player.global_position)
+		if self.player and self.player.has_method("set_movement_locked"):
+			self.player.set_movement_locked(True)
+		if self.interact_label:
+			self.interact_label.visible = False
+		if self.textbox_instance and self.textbox_instance.has_signal("finished"):
+			self.textbox_instance.finished.connect(self._on_textbox_finished)
+		if self.textbox_instance and self.textbox_instance.has_method("queue_text"):
+			self.textbox_instance.queue_text("You found a chest!")
+			self.textbox_instance.queue_text("It creaks open slowly...")
+			self.textbox_instance.queue_text("Inside... just dust.")
+		if self.textbox_instance and self.textbox_instance.has_method("display_text"):
+			self.textbox_instance.display_text()
 
-    	interact_label.visible = False
+	def _on_textbox_finished(self) -> None:
+		if self.player and self.player.has_method("set_movement_locked"):
+			self.player.set_movement_locked(False)
+		if self.textbox_instance and is_instance_valid(self.textbox_instance):
+			self.textbox_instance.queue_free()
+		self.textbox_instance = None
+		if self.in_range and self.interact_label:
+			self.interact_label.visible = True
 
-    	if not area.is_connected("body_entered", Callable(self, "_on_enter")):
-    		area.body_entered.connect(_on_enter)
-    	if not area.is_connected("body_exited", Callable(self, "_on_exit")):
-    		area.body_exited.connect(_on_exit)
-
-
-    def _on_enter(self, body):
-    	if _is_player(body):
-    		in_range = True
-    		player = body
-    		interact_label.text = "Press [E]"
-    		interact_label.visible = True
-
-
-    def _on_exit(self, body):
-    	if body == player:
-    		in_range = False
-    		player = None
-    		interact_label.visible = False
-
-
-    def _unhandled_input(self, event):
-    	if in_range and player and event.is_action_pressed("interact"):
-    		_run_textbox()
-
-
-    def _run_textbox(self):
-    	if not textbox_scene:
-    		push_error("Assign the textbox_scene in the Inspector.")
-    		return
-
-    	textbox_instance = textbox_scene.instantiate()
-    	get_tree().root.add_child(textbox_instance)
-
-    	if textbox_instance.has_method("set_anchor_world_pos"):
-    		textbox_instance.set_anchor_world_pos(player.global_position)
-
-    	if player and player.has_method("set_movement_locked"):
-    		player.set_movement_locked(True)
-
-    	interact_label.visible = False
-
-    	if textbox_instance.has_signal("finished"):
-    		textbox_instance.finished.connect(func ():
-    			if player and player.has_method("set_movement_locked"):
-    				player.set_movement_locked(False)
-    			if is_instance_valid(textbox_instance):
-    				textbox_instance.queue_free()
-    			textbox_instance = None
-    			if in_range:
-    				interact_label.visible = True
-    		)
-
-    	if textbox_instance.has_method("queue_text"):
-    		textbox_instance.queue_text("You found a chest!")
-    		textbox_instance.queue_text("It creaks open slowly...")
-    		textbox_instance.queue_text("Inside... just dust.")
-    	if textbox_instance.has_method("display_text"):
-    		textbox_instance.display_text()
-
-
-    def _is_player(self, body):
-    	return body != None and (body.is_in_group("player") or body.name == "Player")
+	def _is_player(self, body: Optional[Node]) -> bool:
+		if not body:
+			return False
+		if hasattr(body, "is_in_group") and body.is_in_group("player"):
+			return True
+		return getattr(body, "name", "") == "Player"

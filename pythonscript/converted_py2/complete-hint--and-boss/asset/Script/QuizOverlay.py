@@ -1,323 +1,269 @@
-# --- Godot Python bridge imports (py4godot primary) ---
 from typing import Optional, Any
-
 try:
-    # py4godot (Godot 4.x Pluginscript)
-    from py4godot import gdclass, signal
-    from py4godot.core import *  # import all core Godot classes (Node2D, AcceptDialog, Area2D, Label, Button, etc.)
+	from py4godot import gdclass, signal
+	from py4godot.core import *
 except Exception:
-    # Fallback: godot-python (experimental for Godot 4, signatures may differ)
-    from godot import exposed as gdclass, signal
-    from godot import *  # type: ignore
+	from godot import exposed as gdclass, signal
+	from godot import *  # type: ignore
+
 
 @gdclass
 class QuizOverlayLite(Control):
-    def __init__(self):
-        super().__init__()
-        self._expected = None
-        self._open = None
-        self._panel = None
-        self._question = None
-        self._answer = None
-        self._btn_ok = None
-        self._btn_cancel = None
-        self._ui_font = None
-        self._dragging = None
-        self._drag_offset = None
-        self.root = None
-        self.ui_layer = None
-        self.dimmer = None
-        self.vp = None
-        self.target = None
-        self.max_size = None
-        self.panel_box = None
-        self.margin = None
-        self.vbox = None
-        self.q_scroll = None
-        self.qwrap = None
-        self.te_normal = None
-        self.te_focus = None
-        self.has_lwm = None
-        self.has_wm = None
-        self.WRAP_WORD_SAFE = None
-        self.WRAP_BOUNDARY_SAFE = None
-        self.buttons = None
-        self.spacer = None
-        self.sb_normal = None
-        self.sb_hover = None
-        self.sb_pressed = None
-        self.gmp = None
-        self.gmp = None
-        self.pos = None
-        self.vp = None
-        self.vp = None
-        self.tw = None
-        self.given = None
-        self.ok = None
-        self.tw = None
-        self.t = None
-        self.lines = None
+	answered = signal()
 
-    def _ready(self) -> None:
-        pass
+	def __init__(self):
+		super().__init__()
+		self._expected: str = ""
+		self._open: bool = False
+		self._font: Optional[Font] = None
+		self._dimmer: Optional[ColorRect] = None
+		self._panel: Optional[Panel] = None
+		self._margin: Optional[MarginContainer] = None
+		self._vbox: Optional[VBoxContainer] = None
+		self._question: Optional[RichTextLabel] = None
+		self._scroll: Optional[ScrollContainer] = None
+		self._qwrap: Optional[VBoxContainer] = None
+		self._answer: Optional[TextEdit] = None
+		self._btn_ok: Optional[Button] = None
+		self._btn_cancel: Optional[Button] = None
+		self._dragging: bool = False
+		self._drag_offset: Vector2 = Vector2.ZERO
 
-    signal answered(correct: bool, given: String)
+	def _ready(self) -> None:
+		self._font = load("res://asset/font/2005_iannnnnCPU.ttf")
+		self.visible = False
+		self.mouse_filter = Control.MOUSE_FILTER_STOP
+		self.set_anchors_preset(Control.PRESET_FULL_RECT)
+		self.z_index = 9999
 
-    const UI_FONT_PATH := "res://asset/font/2005_iannnnnCPU.ttf"
+		self._dimmer = ColorRect.new()
+		self._dimmer.color = Color(0, 0, 0, 0.55)
+		self._dimmer.set_anchors_preset(Control.PRESET_FULL_RECT)
+		self._dimmer.mouse_filter = Control.MOUSE_FILTER_STOP
+		self._dimmer.gui_input.connect(self._on_dimmer_input)
+		self.add_child(self._dimmer)
 
+		self._panel = Panel.new()
+		self._panel.set_anchors_preset(Control.PRESET_CENTER)
+		vp = self.get_viewport_rect().size
+		target = vp * 0.75
+		max_size = Vector2(900, 620)
+		size = Vector2(min(target.x, max_size.x), min(target.y, max_size.y))
+		self._panel.size = size
+		self._panel.pivot_offset = size / 2
+		self._panel.mouse_filter = Control.MOUSE_FILTER_STOP
+		self.add_child(self._panel)
 
+		panel_box = StyleBoxFlat.new()
+		panel_box.bg_color = Color(0.09, 0.09, 0.10, 0.96)
+		panel_box.set_corner_radius_all(16)
+		panel_box.set_border_width_all(2)
+		panel_box.border_color = Color(1, 1, 1, 0.12)
+		panel_box.shadow_size = 20
+		panel_box.shadow_color = Color(0, 0, 0, 0.45)
+		panel_box.shadow_offset = Vector2(0, 6)
+		self._panel.add_theme_stylebox_override("panel", panel_box)
 
-    # ===== Drag state =====
+		self._panel.gui_input.connect(self._on_panel_gui_input)
 
+		self._margin = MarginContainer.new()
+		self._margin.anchor_left = 0
+		self._margin.anchor_top = 0
+		self._margin.anchor_right = 1
+		self._margin.anchor_bottom = 1
+		self._margin.offset_left = 20
+		self._margin.offset_top = 20
+		self._margin.offset_right = -20
+		self._margin.offset_bottom = -20
+		self._panel.add_child(self._margin)
 
-    def _ready(self):
-    	# ฟอนต์
-    	_ui_font = load(UI_FONT_PATH)
+		self._vbox = VBoxContainer.new()
+		self._vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		self._vbox.add_theme_constant_override("separation", 12)
+		self._margin.add_child(self._vbox)
 
-    	# วางตัวเองบน CanvasLayer
-    	if ui_layer == None:
-    		ui_layer = CanvasLayer.new()
-    		ui_layer.name = "CanvasLayer"
-    		ui_layer.layer = 100
-    		root.add_child(ui_layer)
-    	if get_parent() != ui_layer:
-    		ui_layer.add_child(self)
+		self._scroll = ScrollContainer.new()
+		self._scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		self._scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		self._scroll.custom_minimum_size = Vector2(0, 140)
+		self._scroll.size_flags_stretch_ratio = 1.0
+		self._vbox.add_child(self._scroll)
 
-    	visible = False
-    	mouse_filter = Control.MOUSE_FILTER_STOP
-    	set_anchors_preset(Control.PRESET_FULL_RECT)
-    	z_index = 9999
+		self._qwrap = VBoxContainer.new()
+		self._qwrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		self._scroll.add_child(self._qwrap)
 
-    	# Dimmer
-    	dimmer.color = Color(0, 0, 0, 0.55)
-    	dimmer.set_anchors_preset(Control.PRESET_FULL_RECT)
-    	dimmer.mouse_filter = Control.MOUSE_FILTER_STOP
-    	dimmer.gui_input.connect(func(e):
-    		if e is InputEventMouseButton and e.pressed:
-    			_cancel()
-    	)
-    	add_child(dimmer)
+		self._question = RichTextLabel.new()
+		self._question.bbcode_enabled = False
+		self._question.fit_content = True
+		self._question.autowrap_mode = TextServer.AUTOWRAP_WORD
+		self._question.add_theme_color_override("default_color", Color(1, 1, 1, 0.96))
+		self._question.add_theme_font_size_override("normal_font_size", 26)
+		if self._font:
+			self._question.add_theme_font_override("normal_font", self._font)
+		self._qwrap.add_child(self._question)
 
-    	# Panel (กำหนดขนาดแบบตอบสนอง ไม่ล้นจอ)
-    	_panel = Panel.new()
-    	_panel.set_anchors_preset(Control.PRESET_CENTER)   # เริ่มกลางจอ
+		self._vbox.add_child(HSeparator.new())
 
-    	_panel.size = Vector2(min(target.x, max_size.x), min(target.y, max_size.y))
+		self._answer = TextEdit.new()
+		self._answer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		self._answer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		self._answer.size_flags_stretch_ratio = 1.2
+		self._answer.custom_minimum_size = Vector2(0, 140)
+		if self._font:
+			self._answer.add_theme_font_override("font", self._font)
+			self._answer.add_theme_font_size_override("font_size", 22)
 
-    	_panel.pivot_offset = _panel.size / 2
-    	_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-    	add_child(_panel)
+		te_normal = StyleBoxFlat.new()
+		te_normal.bg_color = Color(0.07, 0.07, 0.08, 1.0)
+		te_normal.set_corner_radius_all(10)
+		te_normal.set_border_width_all(1)
+		te_normal.border_color = Color(1, 1, 1, 0.12)
+		te_normal.shadow_size = 12
+		te_normal.shadow_color = Color(0, 0, 0, 0.25)
+		te_normal.shadow_offset = Vector2(0, 3)
 
-    	# สไตล์แผง
-    	panel_box.bg_color = Color(0.09, 0.09, 0.10, 0.96)
-    	panel_box.set_corner_radius_all(16)
-    	panel_box.set_border_width_all(2)
-    	panel_box.border_color = Color(1, 1, 1, 0.12)
-    	panel_box.shadow_size = 20
-    	panel_box.shadow_color = Color(0, 0, 0, 0.45)
-    	panel_box.shadow_offset = Vector2(0, 6)
-    	_panel.add_theme_stylebox_override("panel", panel_box)
+		te_focus = StyleBoxFlat.new()
+		te_focus.copy_from(te_normal)
+		te_focus.border_color = Color(0.55, 0.8, 1.0, 0.75)
 
-    	# ←— ทำให้ลากย้ายได้ —→
-    	_panel.gui_input.connect(_on_panel_gui_input)
+		self._answer.add_theme_stylebox_override("normal", te_normal)
+		self._answer.add_theme_stylebox_override("focus", te_focus)
+		self._answer.add_theme_color_override("font_color", Color(1, 1, 1, 0.98))
+		self._answer.add_theme_color_override("caret_color", Color(1, 1, 1, 1))
+		self._answer.add_theme_color_override("selection_color", Color(0.35, 0.65, 1.0, 0.35))
+		if typeof(self._answer.get("insert_text_on_tab")) != TYPE_NIL:
+			self._answer.set("insert_text_on_tab", True)
+		elif typeof(self._answer.get("accepts_tab")) != TYPE_NIL:
+			self._answer.set("accepts_tab", True)
+		self._answer.gui_input.connect(self._on_answer_gui_input)
+		self.set_process_unhandled_key_input(True)
+		self._vbox.add_child(self._answer)
 
-    	# Layout
-    	margin.anchor_left = 0
-    	margin.anchor_top = 0
-    	margin.anchor_right = 1
-    	margin.anchor_bottom = 1
-    	margin.offset_left = 20
-    	margin.offset_top = 20
-    	margin.offset_right = -20
-    	margin.offset_bottom = -20
-    	_panel.add_child(margin)
+		buttons = HBoxContainer.new()
+		buttons.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		buttons.add_theme_constant_override("separation", 10)
+		spacer = Control.new()
+		spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		buttons.add_child(spacer)
 
-    	vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
-    	vbox.add_theme_constant_override("separation", 12)
-    	margin.add_child(vbox)
+		self._btn_cancel = Button.new()
+		self._btn_cancel.text = "Cancel"
+		self._btn_ok = Button.new()
+		self._btn_ok.text = "Submit"
 
-    	# ===== คำถาม: ใส่ ScrollContainer กันสูงเกิน =====
-    	q_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-    	q_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-    	q_scroll.custom_minimum_size = Vector2(0, 140)  # โซนคำถามขั้นต่ำ
-    	q_scroll.size_flags_stretch_ratio = 1.0
-    	vbox.add_child(q_scroll)
+		for b in [self._btn_cancel, self._btn_ok]:
+			b.custom_minimum_size = Vector2(120, 38)
+			if self._font:
+				b.add_theme_font_override("font", self._font)
+				b.add_theme_font_size_override("font_size", 22)
+			sb_normal = StyleBoxFlat.new()
+			sb_normal.bg_color = Color(0.18, 0.18, 0.2, 1)
+			sb_normal.set_corner_radius_all(10)
+			sb_normal.set_border_width_all(1)
+			sb_normal.border_color = Color(1, 1, 1, 0.12)
+			sb_hover = StyleBoxFlat.new()
+			sb_hover.copy_from(sb_normal)
+			sb_hover.bg_color = Color(0.24, 0.24, 0.28, 1)
+			sb_pressed = StyleBoxFlat.new()
+			sb_pressed.copy_from(sb_normal)
+			sb_pressed.bg_color = Color(0.12, 0.12, 0.14, 1)
+			b.add_theme_stylebox_override("normal", sb_normal)
+			b.add_theme_stylebox_override("hover", sb_hover)
+			b.add_theme_stylebox_override("pressed", sb_pressed)
+			b.add_theme_color_override("font_color", Color(1, 1, 1))
+			b.add_theme_color_override("font_focus_color", Color(1, 1, 1))
 
-    	qwrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-    	q_scroll.add_child(qwrap)
+		self._btn_cancel.pressed.connect(self._cancel)
+		self._btn_ok.pressed.connect(self._submit)
+		buttons.add_child(self._btn_cancel)
+		buttons.add_child(self._btn_ok)
+		self._vbox.add_child(buttons)
 
-    	_question = RichTextLabel.new()
-    	_question.bbcode_enabled = False
-    	_question.fit_content = True
-    	_question.autowrap_mode = TextServer.AUTOWRAP_WORD
-    	_question.add_theme_color_override("default_color", Color(1, 1, 1, 0.96))
-    	_question.add_theme_font_size_override("normal_font_size", 26)
-    	_question.add_theme_font_override("normal_font", _ui_font)
-    	qwrap.add_child(_question)
+	def _on_dimmer_input(self, e: InputEvent) -> None:
+		if isinstance(e, InputEventMouseButton) and e.pressed:
+			self._cancel()
 
-    	vbox.add_child(HSeparator.new())
+	def _on_answer_gui_input(self, e: InputEvent) -> None:
+		if isinstance(e, InputEventKey) and e.pressed and e.keycode == KEY_ENTER:
+			if e.shift_pressed:
+				self._answer.insert_text_at_caret("\n")
+				self._answer.accept_event()
+			else:
+				self._submit()
+				self._answer.accept_event()
 
-    	# ===== กล่องคำตอบ =====
-    	_answer = TextEdit.new()
-    	_answer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-    	_answer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-    	_answer.size_flags_stretch_ratio = 1.2         # ให้พื้นที่คำตอบมากกว่าคำถามนิดนึง
-    	_answer.custom_minimum_size = Vector2(0, 140)   # เดิม 270 → ลดเพื่อไม่ล้น
-    	_answer.add_theme_font_override("font", _ui_font)
-    	_answer.add_theme_font_size_override("font_size", 22)
+	def _unhandled_key_input(self, e: InputEvent) -> None:
+		if not self._open:
+			return
+		if isinstance(e, InputEventKey) and e.pressed and e.keycode == KEY_ESCAPE:
+			self._cancel()
 
-    	te_normal.bg_color = Color(0.07, 0.07, 0.08, 1.0)
-    	te_normal.set_corner_radius_all(10)
-    	te_normal.set_border_width_all(1)
-    	te_normal.border_color = Color(1, 1, 1, 0.12)
-    	te_normal.shadow_size = 12
-    	te_normal.shadow_color = Color(0, 0, 0, 0.25)
-    	te_normal.shadow_offset = Vector2(0, 3)
+	def _on_panel_gui_input(self, e: InputEvent) -> None:
+		if isinstance(e, InputEventMouseButton) and e.button_index == MOUSE_BUTTON_LEFT:
+			if e.pressed:
+				if self._answer and self._answer.get_global_rect().has_point(self.get_global_mouse_position()):
+					return
+				self._dragging = True
+				self._drag_offset = self._panel.global_position - self.get_global_mouse_position()
+				self._panel.grab_focus()
+				self._panel.accept_event()
+			else:
+				self._dragging = False
+		elif isinstance(e, InputEventMouseMotion) and self._dragging:
+			vp = self.get_viewport_rect().size
+			pos = self.get_global_mouse_position() + self._drag_offset
+			pos.x = clamp(pos.x, 0.0, vp.x - self._panel.size.x)
+			pos.y = clamp(pos.y, 0.0, vp.y - self._panel.size.y)
+			self._panel.global_position = pos
+			self._panel.accept_event()
 
-    	te_focus.border_color = Color(0.55, 0.8, 1.0, 0.75)
+	def _center_panel(self) -> None:
+		vp = self.get_viewport_rect().size
+		self._panel.global_position = (vp - self._panel.size) * 0.5
 
-    	_answer.add_theme_stylebox_override("normal", te_normal)
-    	_answer.add_theme_stylebox_override("focus", te_focus)
-    	_answer.add_theme_color_override("font_color", Color(1, 1, 1, 0.98))
-    	_answer.add_theme_color_override("caret_color", Color(1, 1, 1, 1))
-    	_answer.add_theme_color_override("selection_color", Color(0.35, 0.65, 1.0, 0.35))
+	def ask(self, question: str, expected_answer: str) -> None:
+		if not self._panel or not self._question or not self._answer:
+			return
+		self._question.text = question or ""
+		self._expected = expected_answer or ""
+		self.visible = True
+		self._open = True
+		self._answer.text = ""
+		self._center_panel()
+		self._answer.grab_focus()
+		self._panel.modulate = Color(1, 1, 1, 0)
+		self._panel.scale = Vector2(0.9, 0.9)
+		tw = self.create_tween().set_parallel(True)
+		tw.tween_property(self._panel, "modulate:a", 1.0, 0.15)
+		tw.tween_property(self._panel, "scale", Vector2.ONE, 0.18)
 
-    	if typeof(_answer.get("insert_text_on_tab")) != TYPE_NIL:
-    		_answer.set("insert_text_on_tab", True)
-    	elif typeof(_answer.get("accepts_tab")) != TYPE_NIL:
-    		_answer.set("accepts_tab", True)
+	def _submit(self) -> None:
+		given = self._answer.text if self._answer else ""
+		ok = self._compare_answer(given, self._expected)
+		self._close()
+		self.emit_signal("answered", ok, given)
 
-    	if has_lwm:
-    		_answer.set("line_wrapping_mode", WRAP_WORD_SAFE)
-    	elif has_wm:
-    		_answer.set("wrap_mode", WRAP_BOUNDARY_SAFE)
+	def _cancel(self) -> None:
+		given = self._answer.text if self._answer else ""
+		self._close()
+		self.emit_signal("answered", False, given)
 
-    	vbox.add_child(_answer)
+	def _close(self) -> None:
+		if not self._open:
+			return
+		self._open = False
+		self._dragging = False
+		tw = self.create_tween().set_parallel(True)
+		tw.tween_property(self._panel, "modulate:a", 0.0, 0.12)
+		tw.tween_property(self._panel, "scale", Vector2(0.95, 0.95), 0.12)
+		self.call_deferred("set_visible", False)
 
-    	# ปุ่ม
-    	buttons.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-    	buttons.add_theme_constant_override("separation", 10)
-    	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-    	buttons.add_child(spacer)
+	def _normalize(self, s: str) -> str:
+		t = (s or "").replace("\r\n", "\n").replace("\r", "\n").replace("\t", "    ")
+		lines = t.split("\n")
+		lines = [ln.rstrip(" ") for ln in lines]
+		return "\n".join(lines)
 
-    	_btn_cancel = Button.new()
-    	_btn_cancel.text = "Cancel"
-    	_btn_ok = Button.new()
-    	_btn_ok.text = "Submit"
-
-    	for b in [_btn_cancel, _btn_ok]:
-    		b.custom_minimum_size = Vector2(120, 38)
-    		b.add_theme_font_override("font", _ui_font)
-    		b.add_theme_font_size_override("font_size", 22)
-    		sb_normal.bg_color = Color(0.18, 0.18, 0.2, 1)
-    		sb_normal.set_corner_radius_all(10)
-    		sb_normal.set_border_width_all(1)
-    		sb_normal.border_color = Color(1, 1, 1, 0.12)
-    		sb_hover.bg_color = Color(0.24, 0.24, 0.28, 1)
-    		sb_pressed.bg_color = Color(0.12, 0.12, 0.14, 1)
-    		b.add_theme_stylebox_override("normal", sb_normal)
-    		b.add_theme_stylebox_override("hover", sb_hover)
-    		b.add_theme_stylebox_override("pressed", sb_pressed)
-    		b.add_theme_color_override("font_color", Color(1,1,1))
-    		b.add_theme_color_override("font_focus_color", Color(1,1,1))
-
-    	_btn_cancel.pressed.connect(_cancel)
-    	_btn_ok.pressed.connect(_submit)
-    	buttons.add_child(_btn_cancel)
-    	buttons.add_child(_btn_ok)
-    	vbox.add_child(buttons)
-
-    	# คีย์บอร์ด
-    	_answer.gui_input.connect(_on_answer_gui_input)
-    	set_process_unhandled_key_input(True)
-
-
-    def _on_answer_gui_input(self, e):
-    	if e is InputEventKey and e.pressed and e.keycode == KEY_ENTER:
-    		if e.shift_pressed:
-    			_answer.insert_text_at_caret("\n")
-    			_answer.accept_event()
-    		else:
-    			_submit()
-    			_answer.accept_event()
-
-
-    def _unhandled_key_input(self, e):
-    	if not _open: return
-    	if e is InputEventKey and e.pressed and e.keycode == KEY_ESCAPE:
-    		_cancel()
-
-    # ===== Drag handlers =====
-
-    def _on_panel_gui_input(self, e):
-    	# อย่าเริ่มลากถ้าคลิกลงใน TextEdit (ให้มันโฟกัสพิมพ์ได้ตามปกติ)
-    	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
-    		if e.pressed:
-    			if _answer.get_global_rect().has_point(gmp):
-    				return
-    			_dragging = True
-    			_drag_offset = _panel.global_position - gmp
-    			_panel.grab_focus()
-    			_panel.accept_event()
-    		else:
-    			_dragging = False
-    	elif e is InputEventMouseMotion and _dragging:
-    		# จำกัดไม่ให้ออกนอกหน้าจอ
-    		pos.x = clamp(pos.x, 0.0, vp.x - _panel.size.x)
-    		pos.y = clamp(pos.y, 0.0, vp.y - _panel.size.y)
-    		_panel.global_position = pos
-    		_panel.accept_event()
-
-
-    def _center_panel(self):
-    	_panel.global_position = (vp - _panel.size) * 0.5
-
-
-    def ask(self, question, expected_answer):
-    	_question.text = question
-    	_expected = expected_answer
-    	visible = True
-    	_open = True
-    	_answer.text = ""
-    # TODO: convert awaiting: 	await get_tree().process_frame
-    	_center_panel()         # เปิดใหม่ให้อยู่กลางทุกครั้ง
-    	_answer.grab_focus()
-
-    	# เปิดแบบนุ่ม ๆ
-    	_panel.modulate.a = 0.0
-    	_panel.scale = Vector2(0.9, 0.9)
-    	tw.tween_property(_panel, "modulate:a", 1.0, 0.15)
-    	tw.tween_property(_panel, "scale", Vector2.ONE, 0.18)
-
-
-    def _submit(self):
-    	_close()
-    	answered.emit(ok, given)
-
-
-    def _cancel(self):
-    	_close()
-    	answered.emit(False, _answer.text)
-
-
-    def _close(self):
-    	if not _open: return
-    	_open = False
-    	_dragging = False
-    	tw.tween_property(_panel, "modulate:a", 0.0, 0.12)
-    	tw.tween_property(_panel, "scale", Vector2(0.95, 0.95), 0.12)
-    # TODO: convert awaiting: 	await tw.finished
-    	visible = False
-
-    # ===== เปรียบเทียบคำตอบ =====
-
-    def _normalize(self, s):
-    	t = t.replace("\r\n", "\n").replace("\r", "\n")
-    	t = t.replace("\t", "    ")
-    	for i in lines.size():
-    		lines[i] = lines[i].rstrip(" ")
-    	return String("\n").join(lines)
-
-
-    def _compare_answer(self, given, expected):
-    	return _normalize(given) == _normalize(expected)
+	def _compare_answer(self, given: str, expected: str) -> bool:
+		return self._normalize(given) == self._normalize(expected)

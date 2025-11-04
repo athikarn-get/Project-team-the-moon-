@@ -1,2 +1,14 @@
-res://main.tscn
-res://asset/pythonscript/converted_py/complete-hint--and-boss/asset/Script/QuizBox.py
+res://pythonscript/converted_py2/complete-hint--and-boss/boss_2.py
+res://pythonscript/converted_py2/complete-hint--and-boss/boss_3.py
+res://pythonscript/converted_py2/complete-hint--and-boss/asset/Script/checkpoint_1.py
+res://pythonscript/converted_py2/complete-hint--and-boss/asset/Script/checkpoint_2.py
+res://pythonscript/converted_py2/complete-hint--and-boss/asset/Script/checkpoint_3.py
+res://pythonscript/converted_py2/complete-hint--and-boss/asset/Script/checkpoint_manager.py
+res://pythonscript/converted_py2/complete-hint--and-boss/asset/Script/death_zone.py
+res://pythonscript/converted_py2/complete-hint--and-boss/asset/Script/DialogManager.py
+res://pythonscript/converted_py2/complete-hint--and-boss/asset/Script/hint_test.py
+res://pythonscript/converted_py2/complete-hint--and-boss/asset/Script/item.py
+res://pythonscript/converted_py2/complete-hint--and-boss/asset/Script/player.py
+res://pythonscript/converted_py2/complete-hint--and-boss/asset/Script/QuizBox.py
+res://pythonscript/converted_py2/complete-hint--and-boss/asset/Script/QuizOverlay.py
+res://asset/Scene/main_manu.tscn
